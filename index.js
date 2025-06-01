@@ -16,6 +16,9 @@ const ACCESS_TOKEN_1 = process.env.ACCESS_TOKEN_1;
 const ACCESS_TOKEN_2 = process.env.ACCESS_TOKEN_2;
 const TEMPLATE_PRODUCT_ID = process.env.TEMPLATE_PRODUCT_ID;
 
+app.get('/hello', (req, res) => {
+  res.json({ message: 'Hello from Node.js API!' });
+});
 
 app.post("/generate-image", async (req, res) => {
   const { prompt, numImages = 8 } = req.body;
