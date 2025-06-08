@@ -2,7 +2,22 @@ const express = require("express");
 const axios = require("axios");
 require("dotenv").config();
 const cors = require("cors");
+const AWS = require('aws-sdk');
+const multer = require('multer');
+const storage = multer.memoryStorage(); 
+const upload = multer({
+    storage,
+    limits: {
+        fileSize: 100 * 1024 * 1024 // 100MB
+    }
+});
 
+// Configure S3
+const s3 = new AWS.S3({
+   accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+  secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  region: process.env.AWS_REGION,
+});
 const app = express();
 const PORT = 3000;
 
@@ -16,9 +31,37 @@ const ACCESS_TOKEN_1 = process.env.ACCESS_TOKEN_1;
 const ACCESS_TOKEN_2 = process.env.ACCESS_TOKEN_2;
 const TEMPLATE_PRODUCT_ID = process.env.TEMPLATE_PRODUCT_ID;
 
-app.get('/hello', (req, res) => {
-  res.json({ message: 'Hello from Node.js API!' });
+
+
+async function uploadFileToS3(fileStream, fileName, mimeType) {
+  const params = {
+    Bucket: "t-shirt-website",
+    Key: `uploads/${fileName}`, 
+    Body: fileStream,
+    ContentType: mimeType,
+  };
+
+  return new Promise((resolve, reject) => {
+    s3.upload(params, (err, data) => {
+      if (err) return reject(err);
+      return resolve(data.Location);
+    });
+  });
+}
+
+app.post('/upload', upload.single('file'), async (req, res) => {
+  try {
+
+    const fileStream = req; // raw body stream
+
+    const s3Url = await uploadFileToS3(fileStream.file.buffer, fileStream.file.originalname, fileStream.file.mimetype);
+    res.json({ message: 'Upload successful', url: s3Url });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Upload failed', error: error.message });
+  }
 });
+
 
 app.post("/generate-image", async (req, res) => {
   const { prompt, numImages = 8 } = req.body;
