@@ -36,7 +36,7 @@ const TEMPLATE_PRODUCT_ID = process.env.TEMPLATE_PRODUCT_ID;
 async function uploadFileToS3(fileStream, fileName, mimeType) {
   const params = {
     Bucket: "t-shirt-website",
-    Key: `uploads/${fileName}`, 
+    Key: `uploads/${new Date().getTime()}/${fileName}`,
     Body: fileStream,
     ContentType: mimeType,
   };
