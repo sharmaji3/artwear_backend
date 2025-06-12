@@ -125,6 +125,12 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 //   }
 // });
 
+const express = require("express");
+const axios = require("axios");
+const app = express();
+
+app.use(express.json());
+
 app.post("/generate-image", async (req, res) => {
   const { prompt, numImages = 8, transparency = false } = req.body;
 
@@ -132,27 +138,31 @@ app.post("/generate-image", async (req, res) => {
     return res.status(400).json({ error: "Prompt is required." });
   }
 
-  const transparencyOption = transparency ? "foreground_only" : undefined;
+  const generationPayload = {
+    prompt,
+    width: 512,
+    height: 512,
+    num_images: numImages,
+    guidance_scale: 7,
+    num_inference_steps: 20,
+    modelId: "aa77f04e-3eec-4034-9c07-d0f619684628", // Kino XL
+    elements: [
+      {
+        akUUID: "5f3e58d8-7af3-4d5b-92e3-a3d04b9a3414",
+        weight: 0.5,
+      },
+    ],
+  };
+
+  if (transparency) {
+    generationPayload.transparent = true;
+    generationPayload.transparency = "foreground_only";
+  }
 
   try {
     const response = await axios.post(
       "https://cloud.leonardo.ai/api/rest/v1/generations",
-      {
-        prompt,
-        width: 512,
-        height: 512,
-        num_images: numImages,
-        guidance_scale: 7,
-        num_inference_steps: 20,
-        transparency: transparencyOption,
-        modelId: "aa77f04e-3eec-4034-9c07-d0f619684628", // Kino XL model
-        elements: [
-          {
-            akUUID: "5f3e58d8-7af3-4d5b-92e3-a3d04b9a3414",
-            weight: 0.5,
-          },
-        ],
-      },
+      generationPayload,
       {
         headers: {
           Authorization: `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`,
@@ -186,7 +196,9 @@ app.post("/generate-image", async (req, res) => {
     if (imageUrls.length > 0) {
       res.json({ imageUrls });
     } else {
-      res.status(202).json({ message: "Image generation in progress. Try again later." });
+      res
+        .status(202)
+        .json({ message: "Image generation in progress. Try again later." });
     }
   } catch (error) {
     console.error(error.response?.data || error.message);
