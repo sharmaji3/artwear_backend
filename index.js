@@ -125,12 +125,6 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 //   }
 // });
 
-const express = require("express");
-const axios = require("axios");
-const app = express();
-
-app.use(express.json());
-
 app.post("/generate-image", async (req, res) => {
   const { prompt, numImages = 8, transparency = false } = req.body;
 
