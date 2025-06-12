@@ -132,6 +132,9 @@ app.post("/generate-image", async (req, res) => {
     return res.status(400).json({ error: "Prompt is required." });
   }
 
+  const modelIdPhotoreal = "cd2e3f1c-8e6c-49f7-b13d-eb51c1c8e4c5"; // PhotoReal v2
+  const modelIdDefault = "aa77f04e-3eec-4034-9c07-d0f619684628"; // Kino XL
+
   const generationPayload = {
     prompt,
     width: 512,
@@ -139,7 +142,7 @@ app.post("/generate-image", async (req, res) => {
     num_images: numImages,
     guidance_scale: 7,
     num_inference_steps: 20,
-    modelId: "aa77f04e-3eec-4034-9c07-d0f619684628", // Kino XL
+    modelId: transparency ? modelIdPhotoreal : modelIdDefault,
     elements: [
       {
         akUUID: "5f3e58d8-7af3-4d5b-92e3-a3d04b9a3414",
@@ -190,15 +193,14 @@ app.post("/generate-image", async (req, res) => {
     if (imageUrls.length > 0) {
       res.json({ imageUrls });
     } else {
-      res
-        .status(202)
-        .json({ message: "Image generation in progress. Try again later." });
+      res.status(202).json({ message: "Image generation in progress. Try again later." });
     }
   } catch (error) {
     console.error(error.response?.data || error.message);
     res.status(500).json({ error: "Image generation failed." });
   }
 });
+
 
 
 
