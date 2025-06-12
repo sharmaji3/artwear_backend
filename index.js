@@ -39,6 +39,7 @@ async function uploadFileToS3(fileStream, fileName, mimeType) {
     Key: `uploads/${new Date().getTime()}/${fileName}`,
     Body: fileStream,
     ContentType: mimeType,
+    ACL: 'public-read'
   };
 
   return new Promise((resolve, reject) => {
