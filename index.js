@@ -65,12 +65,74 @@ app.post('/upload', upload.single('file'), async (req, res) => {
 });
 
 
+// app.post("/generate-image", async (req, res) => {
+//   const { prompt, numImages = 8 } = req.body;
+
+//   if (!prompt) {
+//     return res.status(400).json({ error: "Prompt is required." });
+//   }
+
+//   try {
+//     const response = await axios.post(
+//       "https://cloud.leonardo.ai/api/rest/v1/generations",
+//       {
+//         prompt,
+//         width: 512,
+//         height: 512,
+//         num_images: numImages,
+//         guidance_scale: 7,
+//         num_inference_steps: 20,
+//         promptMagic: true
+//       },
+//       {
+//         headers: {
+//           "Authorization": `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`,
+//           "Content-Type": "application/json"
+//         }
+//       }
+//     );
+
+//     const generationId = response.data.sdGenerationJob.generationId;
+
+//     let imageUrls = [];
+//     for (let i = 0; i < 10; i++) {
+//       const genRes = await axios.get(
+//         `https://cloud.leonardo.ai/api/rest/v1/generations/${generationId}`,
+//         {
+//           headers: {
+//             "Authorization": `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`
+//           }
+//         }
+//       );
+
+//       const imageData = genRes.data.generations_by_pk;
+//       if (imageData && imageData.generated_images.length > 0) {
+//         imageUrls = imageData.generated_images.map(img => img.url);
+//         break;
+//       }
+
+//       await new Promise(resolve => setTimeout(resolve, 2000));
+//     }
+
+//     if (imageUrls.length > 0) {
+//       res.json({ imageUrls });
+//     } else {
+//       res.status(202).json({ message: "Image generation in progress. Try again later." });
+//     }
+//   } catch (error) {
+//     console.error(error.response?.data || error.message);
+//     res.status(500).json({ error: "Image generation failed." });
+//   }
+// });
+
 app.post("/generate-image", async (req, res) => {
-  const { prompt, numImages = 8 } = req.body;
+  const { prompt, numImages = 8, transparency = false } = req.body;
 
   if (!prompt) {
     return res.status(400).json({ error: "Prompt is required." });
   }
+
+  const transparencyOption = transparency ? "foreground_only" : undefined;
 
   try {
     const response = await axios.post(
@@ -82,36 +144,43 @@ app.post("/generate-image", async (req, res) => {
         num_images: numImages,
         guidance_scale: 7,
         num_inference_steps: 20,
-        promptMagic: true
+        transparency: transparencyOption,
+        modelId: "aa77f04e-3eec-4034-9c07-d0f619684628", // Kino XL model
+        elements: [
+          {
+            akUUID: "5f3e58d8-7af3-4d5b-92e3-a3d04b9a3414",
+            weight: 0.5,
+          },
+        ],
       },
       {
         headers: {
-          "Authorization": `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`,
-          "Content-Type": "application/json"
-        }
+          Authorization: `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
     const generationId = response.data.sdGenerationJob.generationId;
-
     let imageUrls = [];
+
     for (let i = 0; i < 10; i++) {
       const genRes = await axios.get(
         `https://cloud.leonardo.ai/api/rest/v1/generations/${generationId}`,
         {
           headers: {
-            "Authorization": `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`
-          }
+            Authorization: `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`,
+          },
         }
       );
 
       const imageData = genRes.data.generations_by_pk;
       if (imageData && imageData.generated_images.length > 0) {
-        imageUrls = imageData.generated_images.map(img => img.url);
+        imageUrls = imageData.generated_images.map((img) => img.url);
         break;
       }
 
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
     if (imageUrls.length > 0) {
@@ -124,6 +193,7 @@ app.post("/generate-image", async (req, res) => {
     res.status(500).json({ error: "Image generation failed." });
   }
 });
+
 
 
 
