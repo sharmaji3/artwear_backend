@@ -132,34 +132,27 @@ app.post("/generate-image", async (req, res) => {
     return res.status(400).json({ error: "Prompt is required." });
   }
 
-  const modelIdPhotoreal = "cd2e3f1c-8e6c-49f7-b13d-eb51c1c8e4c5"; // PhotoReal v2
-  const modelIdDefault = "aa77f04e-3eec-4034-9c07-d0f619684628"; // Kino XL
+  const modelId = "2067ae52-33fd-4a82-bb92-c2c55e7d2786"; // AlbedoBase XL
 
-  const generationPayload = {
+  const payload = {
     prompt,
     width: 512,
     height: 512,
     num_images: numImages,
     guidance_scale: 7,
     num_inference_steps: 20,
-    modelId: transparency ? modelIdPhotoreal : modelIdDefault,
-    elements: [
-      {
-        akUUID: "5f3e58d8-7af3-4d5b-92e3-a3d04b9a3414",
-        weight: 0.5,
-      },
-    ],
+    modelId,
   };
 
+  // Only include transparency if user requested it
   if (transparency) {
-    generationPayload.transparent = true;
-    generationPayload.transparency = "foreground_only";
+    payload.transparency = "foreground_only";
   }
 
   try {
-    const response = await axios.post(
+    const generationResponse = await axios.post(
       "https://cloud.leonardo.ai/api/rest/v1/generations",
-      generationPayload,
+      payload,
       {
         headers: {
           Authorization: `Bearer a00319bb-1705-410a-a3e6-e5985bd02ac2`,
@@ -168,11 +161,19 @@ app.post("/generate-image", async (req, res) => {
       }
     );
 
-    const generationId = response.data.sdGenerationJob.generationId;
-    let imageUrls = [];
+    const generationId = generationResponse.data?.sdGenerationJob?.generationId;
 
+    if (!generationId) {
+      console.error("No generationId returned:", generationResponse.data);
+      return res.status(500).json({ error: "No generation ID returned from Leonardo API" });
+    }
+
+    // Poll for image result
+    let imageUrls = [];
     for (let i = 0; i < 10; i++) {
-      const genRes = await axios.get(
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      const pollResponse = await axios.get(
         `https://cloud.leonardo.ai/api/rest/v1/generations/${generationId}`,
         {
           headers: {
@@ -181,25 +182,28 @@ app.post("/generate-image", async (req, res) => {
         }
       );
 
-      const imageData = genRes.data.generations_by_pk;
-      if (imageData && imageData.generated_images.length > 0) {
+      const imageData = pollResponse.data?.generations_by_pk;
+      if (imageData?.generated_images?.length > 0) {
         imageUrls = imageData.generated_images.map((img) => img.url);
         break;
       }
-
-      await new Promise((resolve) => setTimeout(resolve, 2000));
     }
 
-    if (imageUrls.length > 0) {
-      res.json({ imageUrls });
-    } else {
-      res.status(202).json({ message: "Image generation in progress. Try again later." });
+    if (imageUrls.length === 0) {
+      return res.status(202).json({ message: "Image generation in progress. Try again later." });
     }
-  } catch (error) {
-    console.error(error.response?.data || error.message);
-    res.status(500).json({ error: "Image generation failed." });
+
+    res.json({ imageUrls });
+  } catch (err) {
+    console.error("Leonardo API Error:");
+    console.error(err.response?.data || err.message || err);
+
+    return res.status(500).json({
+      error: err.response?.data || err.message || "Unknown error",
+    });
   }
 });
+
 
 
 
