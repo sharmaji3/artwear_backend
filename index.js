@@ -21,8 +21,8 @@ const s3 = new AWS.S3({
 const app = express();
 const PORT = 3000;
 
-app.use(express.json({ limit: "20mb" }));
-app.use(express.urlencoded({ extended: true, limit: "20mb" }));
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 app.use(cors());
 
 const SHOPIFY_STORE = process.env.SHOPIFY_STORE;
