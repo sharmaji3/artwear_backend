@@ -75,8 +75,8 @@ app.post("/generate-image", async (req, res) => {
 
   const payload = {
     prompt,
-    width: 768,
-    height: 768,
+    width: 512,
+    height: 512,
     num_images: numImages,
     guidance_scale: 7,
     num_inference_steps: 20,
